@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bond Risk Monitor | BondStats</title>
+  <meta
+    name="description"
+    content="A live sovereign bond risk dashboard built from current government bond yields and recent yield moves across global markets."
+  />
+  <style>
+    :root {
+      --bg-1: #06111d;
+      --bg-2: #0b1626;
+      --panel: rgba(12, 24, 40, 0.95);
+      --panel-2: rgba(17, 31, 50, 0.98);
+      --panel-3: rgba(20, 37, 58, 0.98);
+      --border: rgba(138, 170, 215, 0.15);
+      --text: #eef4fb;
+      --muted: #9bb0c8;
+      --soft: #7f94ad;
+      --accent: #89b8ff;
+      --good: #7fd39a;
+      --warn: #ffd27d;
+      --bad: #ff9f9f;
+      --critical: #ff7272;
+      --radius: 22px;
+      --radius-sm: 16px;
+      --shadow: 0 18px 42px rgba(0,0,0,0.34);
+      --max: 1280px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(80, 118, 178, 0.18), transparent 26%),
+        radial-gradient(circle at 88% 12%, rgba(89, 118, 162, 0.12), transparent 20%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 26px 18px 40px;
+    }
+
+    .hero,
+    .panel,
+    .stat,
+    .mini-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 26px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      bottom: -90px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(137, 184, 255, 0.12) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: .09em;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 44px;
+      line-height: 1.03;
+      letter-spacing: -0.03em;
+      max-width: 900px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 960px;
+      font-size: 17px;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      color: #d8e7fb;
+      font-weight: 600;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      padding: 18px;
+      background: var(--panel-2);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.06;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .mini-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .mini-card {
+      padding: 16px;
+      background: var(--panel-2);
+    }
+
+    .mini-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .risk-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .risk-row {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr .9fr .8fr;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+
+    .risk-name {
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--panel-3);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 14px 12px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--soft);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.03);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .country {
+      font-weight: 700;
+    }
+
+    .bar-cell {
+      min-width: 180px;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      position: relative;
+    }
+
+    .bar-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #8cbaff, #d8e8ff);
+    }
+
+    .up { color: var(--warn); font-weight: 700; }
+    .down { color: var(--good); font-weight: 700; }
+
+    .signal-low { color: var(--good); font-weight: 700; }
+    .signal-moderate { color: var(--warn); font-weight: 700; }
+    .signal-high { color: #ffb86d; font-weight: 700; }
+    .signal-critical { color: var(--critical); font-weight: 700; }
+
+    .insight-box {
+      background: var(--panel-3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.65;
+      white-space: pre-line;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--soft);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      color: var(--muted);
+    }
+
+    @media (max-width: 1100px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .wrap {
+        padding: 14px 12px 28px;
+      }
+
+      .hero, .panel, .stat, .mini-card {
+        border-radius: 18px;
+      }
+
+      .hero, .panel {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 31px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-value {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">BondStats Risk Dashboard</p>
+      <h1>Bond Risk Monitor</h1>
+      <p>
+        A live sovereign bond risk dashboard built from current government bond yield levels and recent yield moves across countries.
+        This version uses only live BondStats JSON inputs and applies a transparent country-level risk framework.
+      </p>
+      <div class="hero-meta">
+        <div class="pill" id="updated-pill">Loading latest data...</div>
+        <div class="pill" id="tracked-pill">Tracking markets...</div>
+        <div class="pill">Live source: BondStats global yield feed</div>
+      </div>
+    </section>
+
+    <section class="grid-4">
+      <div class="stat">
+        <span class="stat-label">Global Risk Score</span>
+        <div class="stat-value" id="global-risk-score">—</div>
+        <div class="stat-note" id="global-risk-note">Loading...</div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Highest Risk Market</span>
+        <div class="stat-value" id="highest-risk-market">—</div>
+        <div class="stat-note" id="highest-risk-note">Loading...</div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Highest Yield</span>
+        <div class="stat-value" id="highest-yield">—</div>
+        <div class="stat-note" id="highest-yield-note">Loading...</div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Largest Recent Jump</span>
+        <div class="stat-value" id="largest-jump">—</div>
+        <div class="stat-note" id="largest-jump-note">Loading...</div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <section class="panel">
+        <h2>Live Bond Risk Read</h2>
+        <p class="sub">
+          The monitor below combines current yield level and recent yield change into a transparent sovereign bond risk signal.
+        </p>
+
+        <div class="insight-box" id="insight-box">Loading interpretation...</div>
+
+        <div class="footnote">
+          This dashboard intentionally avoids fabricated yield-curve or recession inputs when they are not present in the live JSON feed.
+          It uses only currently available live BondStats inputs: yield level, recent move, date and update frequency.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Highest Risk Signals</h2>
+        <p class="sub">
+          Countries with the strongest current bond-market stress signal in the live dataset.
+        </p>
+
+        <div class="risk-list" id="risk-list">
+          <div class="empty">Loading risk signals...</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <h2>Country Risk Table</h2>
+      <p class="sub">
+        Each country score is derived from a two-part framework: current yield level and recent positive yield pressure.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Yield</th>
+              <th>Recent Change</th>
+              <th>Yield Pressure</th>
+              <th>Move Pressure</th>
+              <th>Risk Score</th>
+              <th>Risk Signal</th>
+              <th>Date</th>
+              <th>Frequency</th>
+            </tr>
+          </thead>
+          <tbody id="risk-table">
+            <tr>
+              <td colspan="9" class="empty">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function toNumber(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function fmtYield(v) {
+      if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+      return v.toFixed(2) + "%";
+    }
+
+    function fmtChange(v) {
+      if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+      const sign = v > 0 ? "+" : "";
+      return sign + v.toFixed(2) + " pp";
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function signalLabel(score) {
+      if (score >= 75) return "Critical";
+      if (score >= 55) return "High";
+      if (score >= 35) return "Moderate";
+      return "Low";
+    }
+
+    function signalClass(score) {
+      if (score >= 75) return "signal-critical";
+      if (score >= 55) return "signal-high";
+      if (score >= 35) return "signal-moderate";
+      return "signal-low";
+    }
+
+    function normalizeCountries(rawCountries) {
+      return Object.entries(rawCountries || {})
+        .map(([key, item]) => {
+          const value = toNumber(item.value);
+          const change =
+            item.change === null || item.change === undefined || item.change === ""
+              ? null
+              : toNumber(item.change);
+
+          if (value === null) return null;
+
+          return {
+            key,
+            label: item.label || key.replaceAll("_", " "),
+            value,
+            change,
+            date: item.date || "—",
+            frequency: item.frequency || "—"
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function buildRiskModel(rows) {
+      const maxYield = Math.max(...rows.map(r => r.value), 0);
+      const maxPositiveChange = Math.max(
+        ...rows.map(r => Number.isFinite(r.change) && r.change > 0 ? r.change : 0),
+        0
+      );
+
+      return rows.map(row => {
+        const yieldPressure = maxYield > 0 ? (row.value / maxYield) * 100 : 0;
+        const movePressure =
+          maxPositiveChange > 0 && Number.isFinite(row.change) && row.change > 0
+            ? (row.change / maxPositiveChange) * 100
+            : 0;
+
+        const riskScore = Math.round((yieldPressure * 0.65) + (movePressure * 0.35));
+
+        return {
+          ...row,
+          yieldPressure,
+          movePressure,
+          riskScore,
+          signal: signalLabel(riskScore)
+        };
+      });
+    }
+
+    function buildInsight(rows) {
+      if (!rows.length) return "No live bond risk data available.";
+
+      const highestRisk = [...rows].sort((a, b) => b.riskScore - a.riskScore)[0];
+      const highestYield = [...rows].sort((a, b) => b.value - a.value)[0];
+      const biggestJump = rows
+        .filter(r => Number.isFinite(r.change))
+        .sort((a, b) => b.change - a.change)[0] || null;
+
+      const avgRisk = rows.reduce((sum, r) => sum + r.riskScore, 0) / rows.length;
+      const avgLabel = signalLabel(avgRisk);
+
+      const parts = [];
+      parts.push(
+        `The current global bond risk read is ${avgLabel.toLowerCase()}, with an average country score of ${avgRisk.toFixed(0)}/100.`
+      );
+      parts.push(
+        `${highestRisk.label} currently carries the highest live risk score at ${highestRisk.riskScore}/100, driven by a ${fmtYield(highestRisk.value)} 10-year yield${Number.isFinite(highestRisk.change) ? ` and a recent move of ${fmtChange(highestRisk.change)}` : ""}.`
+      );
+      parts.push(
+        `${highestYield.label} has the highest outright yield in the tracked set at ${fmtYield(highestYield.value)}, which keeps it near the top of the current sovereign risk distribution.`
+      );
+
+      if (biggestJump && Number.isFinite(biggestJump.change) && biggestJump.change > 0) {
+        parts.push(
+          `${biggestJump.label} shows the strongest recent upward jump at ${fmtChange(biggestJump.change)}, which can signal tighter financing conditions or renewed inflation pressure in that market.`
+        );
+      }
+
+      parts.push(
+        `This monitor is intentionally transparent: it does not rely on fabricated curve-inversion or recession inputs when those fields are not present in the live JSON.`
+      );
+
+      return parts.join("\n\n");
+    }
+
+    function renderTopRisk(rows) {
+      const target = document.getElementById("risk-list");
+      if (!rows.length) {
+        target.innerHTML = '<div class="empty">No risk data available.</div>';
+        return;
+      }
+
+      const top = [...rows].sort((a, b) => b.riskScore - a.riskScore).slice(0, 6);
+
+      target.innerHTML = top.map(r => `
+        <div class="risk-row">
+          <div class="risk-name">${r.label}</div>
+          <div>${fmtYield(r.value)}</div>
+          <div class="${Number.isFinite(r.change) && r.change > 0 ? 'up' : Number.isFinite(r.change) && r.change < 0 ? 'down' : ''}">${fmtChange(r.change)}</div>
+          <div class="${signalClass(r.riskScore)}">${r.signal}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById("risk-table");
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No live data available.</td></tr>';
+        return;
+      }
+
+      const sorted = [...rows].sort((a, b) => b.riskScore - a.riskScore);
+
+      tbody.innerHTML = sorted.map(r => `
+        <tr>
+          <td class="country">${r.label}</td>
+          <td>${fmtYield(r.value)}</td>
+          <td class="${Number.isFinite(r.change) && r.change > 0 ? 'up' : Number.isFinite(r.change) && r.change < 0 ? 'down' : ''}">${fmtChange(r.change)}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${clamp(r.yieldPressure, 0, 100)}%"></div>
+            </div>
+          </td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${clamp(r.movePressure, 0, 100)}%"></div>
+            </div>
+          </td>
+          <td>${r.riskScore}/100</td>
+          <td class="${signalClass(r.riskScore)}">${r.signal}</td>
+          <td>${r.date}</td>
+          <td>${r.frequency}</td>
+        </tr>
+      `).join("");
+    }
+
+    fetch("https://botapi33.github.io/bondstats-global-yields/global_yields.json?ts=" + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const rawRows = normalizeCountries(data.countries);
+        const rows = buildRiskModel(rawRows);
+
+        const avgRisk = rows.length
+          ? rows.reduce((sum, r) => sum + r.riskScore, 0) / rows.length
+          : 0;
+
+        const highestRisk = rows.length ? [...rows].sort((a, b) => b.riskScore - a.riskScore)[0] : null;
+        const highestYield = rows.length ? [...rows].sort((a, b) => b.value - a.value)[0] : null;
+        const largestJump = rows
+          .filter(r => Number.isFinite(r.change))
+          .sort((a, b) => b.change - a.change)[0] || null;
+
+        document.getElementById("updated-pill").textContent =
+          "Updated: " + (data.meta?.lastUpdated || "—");
+
+        document.getElementById("tracked-pill").textContent =
+          rows.length + " countries tracked";
+
+        document.getElementById("global-risk-score").textContent =
+          Math.round(avgRisk) + "/100";
+        document.getElementById("global-risk-note").textContent =
+          signalLabel(avgRisk) + " average sovereign risk regime";
+
+        document.getElementById("highest-risk-market").textContent =
+          highestRisk ? highestRisk.label : "—";
+        document.getElementById("highest-risk-note").textContent =
+          highestRisk ? highestRisk.riskScore + "/100 • " + highestRisk.signal : "Data unavailable";
+
+        document.getElementById("highest-yield").textContent =
+          highestYield ? fmtYield(highestYield.value) : "—";
+        document.getElementById("highest-yield-note").textContent =
+          highestYield ? highestYield.label + " • highest live yield" : "Data unavailable";
+
+        document.getElementById("largest-jump").textContent =
+          largestJump ? fmtChange(largestJump.change) : "—";
+        document.getElementById("largest-jump-note").textContent =
+          largestJump ? largestJump.label + " • strongest recent increase" : "Data unavailable";
+
+        document.getElementById("insight-box").textContent =
+          buildInsight(rows);
+
+        renderTopRisk(rows);
+        renderTable(rows);
+      })
+      .catch(() => {
+        document.getElementById("updated-pill").textContent = "Unable to load data";
+        document.getElementById("tracked-pill").textContent = "Data unavailable";
+
+        document.getElementById("global-risk-score").textContent = "—";
+        document.getElementById("global-risk-note").textContent = "Data unavailable";
+
+        document.getElementById("highest-risk-market").textContent = "—";
+        document.getElementById("highest-risk-note").textContent = "Data unavailable";
+
+        document.getElementById("highest-yield").textContent = "—";
+        document.getElementById("highest-yield-note").textContent = "Data unavailable";
+
+        document.getElementById("largest-jump").textContent = "—";
+        document.getElementById("largest-jump-note").textContent = "Data unavailable";
+
+        document.getElementById("insight-box").textContent =
+          "The Bond Risk Monitor could not load the latest BondStats global yield feed.";
+
+        document.getElementById("risk-list").innerHTML =
+          '<div class="empty">No risk data available.</div>';
+
+        document.getElementById("risk-table").innerHTML =
+          '<tr><td colspan="9" class="empty">Error loading data.</td></tr>';
+      });
+  </script>
+</body>
+</html>
